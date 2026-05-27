@@ -37,6 +37,15 @@ type SessionOption = {
   value: number;
 };
 
+// frontend styling
+
+const cardStyle = {
+  padding: "1rem",
+  backgroundColor: "#1f2937",
+  borderRadius: "12px",
+  border: "1px solid #374151",
+};
+
 function App() {
   const [drivers, setDrivers] = useState<DriverOption[]>([]);
 
@@ -120,10 +129,16 @@ function App() {
       <h1>TrackOps</h1>
       <p>Real-Time Motorsport Operations Dashboard</p>
 
-      <div style={{ marginTop: "1.5rem" }}>
-        <label htmlFor="session-select">Session: </label>
-
-        <select
+      <div
+        style={{
+          ...cardStyle,
+          display: "flex",
+          gap: "1rem",
+          alignItems: "center",
+          marginTop: "1.5rem",
+        }}
+      >
+        {<select
           id="session-select"
           value={selectedSession}
           onChange={(event) => setSelectedSession(Number(event.target.value))}
@@ -133,13 +148,8 @@ function App() {
               {session.label}
             </option>
           ))}
-        </select>
-      </div>
-
-      <div style={{ marginTop: "1.5rem" }}>
-        <label htmlFor="driver-select">Driver: </label>
-
-        <select
+        </select>}
+        {<select
           id="driver-select"
           value={selectedDriver ?? ""}
           onChange={(event) => setSelectedDriver(Number(event.target.value))}
@@ -154,69 +164,62 @@ function App() {
               </option>
             ))
           )}
-        </select>
+        </select>}
       </div>
 
       <div
         style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(3, 1fr)",
+          gap: "1rem",
           marginTop: "2rem",
-          padding: "1rem",
-          backgroundColor: "#1f2937",
-          borderRadius: "8px",
         }}
       >
-        <h2>Lap Analysis</h2>
+        <div style={cardStyle}>
+          <h3>Total Laps</h3>
+          <p style={{ fontSize: "2rem" }}>{lapAnalysis?.total_laps ?? "—"}</p>
+        </div>
 
-        {lapAnalysis ? (
-          <>
-            <p>Total Laps: {lapAnalysis.total_laps}</p>
-            <p>Fastest Lap: {lapAnalysis.fastest_lap}s</p>
-            <p>Average Lap: {lapAnalysis.average_lap}s</p>
-          </>
-        ) : (
-          <p>Loading lap analysis...</p>
-        )}
+        <div style={cardStyle}>
+          <h3>Fastest Lap</h3>
+          <p style={{ fontSize: "2rem" }}>
+            {lapAnalysis ? `${lapAnalysis.fastest_lap}s` : "—"}
+          </p>
+        </div>
+
+        <div style={cardStyle}>
+          <h3>Average Lap</h3>
+          <p style={{ fontSize: "2rem" }}>
+            {lapAnalysis ? `${lapAnalysis.average_lap}s` : "—"}
+          </p>
+        </div>
       </div>
 
-      <div
-        style={{
-          marginTop: "2rem",
-          padding: "1rem",
-          backgroundColor: "#1f2937",
-          borderRadius: "8px",
-        }}
-      >
+      <div style={{ ...cardStyle, marginTop: "2rem" }}>
         <h2>Strategy Alerts</h2>
 
-        {strategyAlerts ? (
-          <>
-            <p>Average Lap: {strategyAlerts.average_lap}s</p>
-            <p>Recent Average: {strategyAlerts.recent_average}s</p>
-
-            {strategyAlerts.alerts.length > 0 ? (
-              <ul>
-                {strategyAlerts.alerts.map((alert: any, index: number) => (
-                  <li key={index}>
-                    [{alert.severity.toUpperCase()}] {alert.message}
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p>No active alerts.</p>
-            )}
-          </>
+        {strategyAlerts?.alerts?.length > 0 ? (
+          strategyAlerts.alerts.map((alert: any, index: number) => (
+            <div
+              key={index}
+              style={{
+                marginTop: "0.75rem",
+                padding: "0.75rem",
+                borderRadius: "8px",
+                backgroundColor: "#111827",
+                border: "1px solid #374151",
+              }}
+            >
+              <strong>[{alert.severity.toUpperCase()}]</strong> {alert.message}
+            </div>
+          ))
         ) : (
-          <p>Loading strategy alerts...</p>
+          <p>No active alerts.</p>
         )}
       </div>
 
-      <div
-        style={{
-          width: "100%",
-          minWidth: "300px",
-          height: "300px",
-        }}
-      >
+      <div style={{ ...cardStyle, marginTop: "2rem" }}>
+        <h2>Lap Time Trend</h2>
         {lapSummary.length > 0 && (
           <ResponsiveContainer width="99%" height={300}>
             <LineChart data={lapSummary}>
