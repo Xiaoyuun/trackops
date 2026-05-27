@@ -27,8 +27,9 @@ type LapSummary = {
 
 // allows for driver dropdown
 type DriverOption = {
-  label: string;
-  value: number;
+  full_name: string;
+  driver_number: number;
+  name_acronym: string;
 };
 
 type SessionOption = {
@@ -37,12 +38,7 @@ type SessionOption = {
 };
 
 function App() {
-  const drivers: DriverOption[] = [
-    { label: "Oscar Piastri", value: 81 },
-    { label: "Lando Norris", value: 1 },
-    { label: "Max Verstappen", value: 3 },
-    { label: "Charles Leclerc", value: 16 },
-  ];
+  const [drivers, setDrivers] = useState<DriverOption[]>([]);
 
   const sessions: SessionOption[] = [
     { label: "2024 Abu Dhabi GP - Race", value: 9488 },
@@ -57,7 +53,25 @@ function App() {
   const [selectedDriver, setSelectedDriver] = useState<number>(81);
   const [selectedSession, setSelectedSession] = useState<number>(11291);
 
+  // when session changes fetch drivers
   useEffect(() => {
+    fetch(`http://127.0.0.1:8000/drivers?session_key=${selectedSession}`)
+      .then((response) => response.json())
+      .then((data) => {
+        setDrivers(data);
+
+        if (data.length > 0) {
+          setSelectedDriver(data[0].driver_number);
+        }
+      })
+      .catch((error) => console.error("Error fetching drivers:", error));
+  }, [selectedSession]);
+
+  // lap data fetchiing use effect
+  useEffect(() => {
+    // avoid fetchiing lap data before driver exists
+    if (!selectedDriver) return;
+
     fetch(`http://127.0.0.1:8000/lap-analysis?session_key=${selectedSession}&driver_number=${selectedDriver}`)
       .then((response) => response.json())
       .then((data) => setLapAnalysis(data))
@@ -113,8 +127,8 @@ function App() {
           onChange={(event) => setSelectedDriver(Number(event.target.value))}
         >
           {drivers.map((driver) => (
-            <option key={driver.value} value={driver.value}>
-              {driver.label}
+            <option key={driver.driver_number} value={driver.driver_number}>
+              {driver.full_name} ({driver.name_acronym})
             </option>
           ))}
         </select>
