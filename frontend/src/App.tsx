@@ -38,6 +38,15 @@ type SessionOption = {
   value: number;
 };
 
+type StintAnalysis = {
+  stint_number: number;
+  compound: string;
+  lap_start: number;
+  lap_end: number;
+  tyre_age_at_start: number;
+};
+
+
 // frontend styling
 
 const cardStyle = {
@@ -69,6 +78,7 @@ function App() {
     Record<number, LapSummary[]>
   >({});
   const [driverToAdd, setDriverToAdd] = useState<number | null>(null);
+  const [stintAnalysis, setStintAnalysis] = useState<StintAnalysis[]>([]);
 
   const chartData = lapSummary.map((lap) => {
     const row: Record<string, number | null> = {
@@ -169,6 +179,10 @@ function App() {
         setLapSummary(cleanData);
       })
       .catch((error) => console.error("Error fetching lap summary:", error));
+    fetch(`http://127.0.0.1:8000/stint-analysis?session_key=${selectedSession}&driver_number=${selectedDriver}`)
+      .then((response) => response.json())
+      .then((data) => setStintAnalysis(data))
+      .catch((error) => console.error("Error fetching stint analysis:", error));
   }, [selectedDriver, selectedSession, drivers]);
 
   function addComparisonDriver() {
@@ -581,6 +595,31 @@ function App() {
               />
             </LineChart>
           </ResponsiveContainer>
+        </div>
+      </div>
+
+      <div style={{ ...cardStyle, marginTop: "2rem" }}>
+        <h2>Tire Stint Analysis</h2>
+
+        <div style={{ display: "grid", gap: "1rem" }}>
+          {stintAnalysis.map((stint) => (
+            <div
+              key={stint.stint_number}
+              style={{
+                padding: "1rem",
+                backgroundColor: "#111827",
+                border: "1px solid #374151",
+                borderRadius: "10px",
+              }}
+            >
+              <h3>Stint {stint.stint_number} — {stint.compound ?? "Unknown"}</h3>
+              <p>
+                Laps {stint.lap_start}–{stint.lap_end} (
+                {stint.lap_end - stint.lap_start + 1} laps)
+              </p>
+              <p>Tyre Age at Start: {stint.tyre_age_at_start} laps</p>
+            </div>
+          ))}
         </div>
       </div>
 

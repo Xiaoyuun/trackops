@@ -40,3 +40,14 @@ def fetch_laps(session_key: int, driver_number: int):
     )
     response.raise_for_status()
     return response.json()
+
+def fetch_stints(session_key: int, driver_number: int):
+    response = requests.get(
+        f"{OPENF1_BASE}/stints",
+        params={
+            "session_key": session_key,
+            "driver_number": driver_number
+        }
+    )
+    response.raise_for_status()
+    return response.json()

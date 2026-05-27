@@ -1,8 +1,8 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.services.openf1_client import fetch_sessions, fetch_drivers, fetch_laps
-from app.services.analysis import generate_lap_summary, analyze_laps, generate_strategy_alerts
+from app.services.openf1_client import fetch_sessions, fetch_drivers, fetch_laps, fetch_stints
+from app.services.analysis import generate_lap_summary, analyze_laps, generate_strategy_alerts, analyze_stints
 
 # app is the actual backend server, everything is attached to app
 # creates FastAPI application object
@@ -72,3 +72,8 @@ def get_lap_analysis(session_key: int = 11291, driver_number: int = 81):
 def get_strategy_alerts(session_key: int = 11291, driver_number: int = 81):
     laps = fetch_laps(session_key, driver_number)
     return generate_strategy_alerts(laps)
+
+@app.get("/stint-analysis")
+def get_stint_analysis(session_key: int = 9488, driver_number: int = 81):
+    stints = fetch_stints(session_key, driver_number)
+    return analyze_stints(stints)

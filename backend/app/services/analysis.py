@@ -8,7 +8,10 @@ def generate_lap_summary(laps: list):
             "sector_1": lap.get("duration_sector_1"),
             "sector_2": lap.get("duration_sector_2"),
             "sector_3": lap.get("duration_sector_3"),
-            "is_pit_out_lap": lap.get("is_pit_out_lap")
+            "is_pit_out_lap": lap.get("is_pit_out_lap"),
+            "stint_number": lap.get("stint_number"),
+            "compound": lap.get("compound"),
+            "tyre_age_at_start": lap.get("tyre_age_at_start"),
         })
     # fastAPI converst python list into json automatically
     # so browser receives structured JSON
@@ -104,3 +107,26 @@ def generate_strategy_alerts(laps: list):
         "recent_average": round(recent_average, 3),
         "alerts": alerts
     }
+
+# for tire stint analyis
+# show stint legnths, pit windows, tire compound changes, average stint pace
+def analyze_stints(stints: list):
+    result = []
+
+    for stint in stints:
+        lap_start = stint.get("lap_start")
+        lap_end = stint.get("lap_end")
+
+        if lap_start is None or lap_end is None:
+            continue
+
+        result.append({
+            "stint_number": stint.get("stint_number"),
+            "compound": stint.get("compound"),
+            "lap_start": lap_start,
+            "lap_end": lap_end,
+            "stint_length": lap_end - lap_start + 1,
+            "tyre_age_at_start": stint.get("tyre_age_at_start"),
+        })
+
+    return result
