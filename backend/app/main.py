@@ -12,7 +12,7 @@ app = FastAPI(title="TrackOps API")
 # frontend and backend are on different origins
 # treated as different websites for security reasons
 # this code tells fastAPI to allow reqests coming from react frontend on localhost
-# on react frontend, can now see analysis data from backend
+# on react frontend can send request to backend, and backend sends data to frontend
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:5173"],
