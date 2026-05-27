@@ -50,11 +50,13 @@ function App() {
   const [lapAnalysis, setLapAnalysis] = useState<LapAnalysis | null>(null);
   const [strategyAlerts, setStrategyAlerts] = useState<any>(null);
   const [lapSummary, setLapSummary] = useState<LapSummary[]>([]);
-  const [selectedDriver, setSelectedDriver] = useState<number>(81);
+  const [selectedDriver, setSelectedDriver] = useState<number | null>(81);
   const [selectedSession, setSelectedSession] = useState<number>(11291);
 
   // when session changes fetch drivers
   useEffect(() => {
+    setDrivers([]);
+
     fetch(`http://127.0.0.1:8000/drivers?session_key=${selectedSession}`)
       .then((response) => response.json())
       .then((data) => {
@@ -62,16 +64,32 @@ function App() {
 
         if (data.length > 0) {
           setSelectedDriver(data[0].driver_number);
+        } else {
+          setSelectedDriver(null);
         }
       })
-      .catch((error) => console.error("Error fetching drivers:", error));
+      .catch((error) => {
+        console.error("Error fetching drivers:", error);
+        setDrivers([]);
+        setSelectedDriver(null);
+      });
   }, [selectedSession]);
 
   // lap data fetchiing use effect
   useEffect(() => {
     // avoid fetchiing lap data before driver exists
-    if (!selectedDriver) return;
+    if (selectedDriver === null) return;
 
+    // when fetching new lap data, clear old chart data first
+    // setLapSummary([]);
+
+    const driverExistsInSession = drivers.some(
+      (driver) => driver.driver_number === selectedDriver
+    );
+
+    if (!driverExistsInSession) return;
+
+    // fetch lap analysis, strategy alerts, lap summary below
     fetch(`http://127.0.0.1:8000/lap-analysis?session_key=${selectedSession}&driver_number=${selectedDriver}`)
       .then((response) => response.json())
       .then((data) => setLapAnalysis(data))
@@ -87,7 +105,7 @@ function App() {
         setLapSummary(cleanData);
       })
       .catch((error) => console.error("Error fetching lap summary:", error));
-  }, [selectedDriver, selectedSession]);
+  }, [selectedDriver, selectedSession, drivers]);
 
   return (
     <div
@@ -123,14 +141,19 @@ function App() {
 
         <select
           id="driver-select"
-          value={selectedDriver}
+          value={selectedDriver ?? ""}
           onChange={(event) => setSelectedDriver(Number(event.target.value))}
+          disabled={drivers.length === 0}
         >
-          {drivers.map((driver) => (
-            <option key={driver.driver_number} value={driver.driver_number}>
-              {driver.full_name} ({driver.name_acronym})
-            </option>
-          ))}
+          {drivers.length === 0 ? (
+            <option value="">Loading drivers...</option>
+          ) : (
+            drivers.map((driver) => (
+              <option key={driver.driver_number} value={driver.driver_number}>
+                {driver.full_name} ({driver.name_acronym})
+              </option>
+            ))
+          )}
         </select>
       </div>
 
@@ -189,16 +212,13 @@ function App() {
 
       <div
         style={{
-          marginTop: "2rem",
-          padding: "1rem",
-          backgroundColor: "#1f2937",
-          borderRadius: "8px",
+          width: "100%",
+          minWidth: "300px",
+          height: "300px",
         }}
       >
-        <h2>Lap Time Trend</h2>
-
-        <div style={{ width: "100%", height: "300px", minWidth: 0 }}>
-          <ResponsiveContainer width="100%" height="100%">
+        {lapSummary.length > 0 && (
+          <ResponsiveContainer width="99%" height={300}>
             <LineChart data={lapSummary}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="lap_number" />
@@ -212,7 +232,7 @@ function App() {
               />
             </LineChart>
           </ResponsiveContainer>
-        </div>
+        )}
       </div>
 
     </div>
