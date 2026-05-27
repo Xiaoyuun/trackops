@@ -47,6 +47,8 @@ const cardStyle = {
   border: "1px solid #374151",
 };
 
+const comparisonColors = ["#f97316", "#a78bfa", "#22c55e", "#f43f5e"];
+
 function App() {
   const [drivers, setDrivers] = useState<DriverOption[]>([]);
 
@@ -62,60 +64,52 @@ function App() {
   const [lapSummary, setLapSummary] = useState<LapSummary[]>([]);
   const [selectedDriver, setSelectedDriver] = useState<number | null>(81);
   const [selectedSession, setSelectedSession] = useState<number>(11291);
-  const [comparisonDriver, setComparisonDriver] = useState<number | null>(null);
-  const [comparisonLapSummary, setComparisonLapSummary] = useState<LapSummary[]>([]);
+  const [comparisonDrivers, setComparisonDrivers] = useState<number[]>([]);
+  const [comparisonLapSummaries, setComparisonLapSummaries] = useState<
+    Record<number, LapSummary[]>
+  >({});
+  const [driverToAdd, setDriverToAdd] = useState<number | null>(null);
 
   const chartData = lapSummary.map((lap) => {
-    const comparisonLap = comparisonLapSummary.find(
-      (otherLap) => otherLap.lap_number === lap.lap_number
-    );
-
-    return {
-      ...lap,
-      comparison_lap_duration: comparisonLap?.lap_duration ?? null,
+    const row: Record<string, number | null> = {
+      lap_number: lap.lap_number,
+      selected_lap_duration: lap.lap_duration,
     };
-  });
 
-  const deltaChartData = lapSummary
-    .map((lap) => {
-      const comparisonLap = comparisonLapSummary.find(
+    comparisonDrivers.forEach((driverNumber) => {
+      const comparisonLap = comparisonLapSummaries[driverNumber]?.find(
         (otherLap) => otherLap.lap_number === lap.lap_number
       );
 
-      if (!comparisonLap || lap.lap_duration === null || comparisonLap.lap_duration === null) {
-        return null;
-      }
+      row[`driver_${driverNumber}`] = comparisonLap?.lap_duration ?? null;
+    });
 
-      return {
-        lap_number: lap.lap_number,
-        lap_delta: Number((lap.lap_duration - comparisonLap.lap_duration).toFixed(3)),
-      };
-    })
-    .filter((lap) => lap !== null);
+    return row;
+  });
 
   useEffect(() => {
-    if (comparisonDriver === null) return;
+    comparisonDrivers.forEach((driverNumber) => {
+      if (comparisonLapSummaries[driverNumber]) return;
 
-    const driverExistsInSession = drivers.some(
-      (driver) => driver.driver_number === comparisonDriver
-    );
+      fetch(
+        `http://127.0.0.1:8000/lap-summary?session_key=${selectedSession}&driver_number=${driverNumber}`
+      )
+        .then((response) => response.json())
+        .then((data) => {
+          const cleanData = data.filter(
+            (lap: LapSummary) => lap.lap_duration !== null
+          );
 
-    if (!driverExistsInSession) return;
-
-    fetch(
-      `http://127.0.0.1:8000/lap-summary?session_key=${selectedSession}&driver_number=${comparisonDriver}`
-    )
-      .then((response) => response.json())
-      .then((data) => {
-        const cleanData = data.filter(
-          (lap: LapSummary) => lap.lap_duration !== null
+          setComparisonLapSummaries((current) => ({
+            ...current,
+            [driverNumber]: cleanData,
+          }));
+        })
+        .catch((error) =>
+          console.error("Error fetching comparison lap summary:", error)
         );
-        setComparisonLapSummary(cleanData);
-      })
-      .catch((error) =>
-        console.error("Error fetching comparison lap summary:", error)
-      );
-  }, [comparisonDriver, selectedSession, drivers]);
+    });
+  }, [comparisonDrivers, selectedSession, comparisonLapSummaries]);
 
   // when session changes fetch drivers
   useEffect(() => {
@@ -128,13 +122,14 @@ function App() {
 
         if (data.length > 0) {
           setSelectedDriver(data[0].driver_number);
+          setDriverToAdd(data[1]?.driver_number ?? null);
+          setComparisonDrivers([]);
+          setComparisonLapSummaries({});
         } else {
           setSelectedDriver(null);
-        }
-        if (data.length > 1) {
-          setComparisonDriver(data[1].driver_number);
-        } else {
-          setComparisonDriver(null);
+          setDriverToAdd(null);
+          setComparisonDrivers([]);
+          setComparisonLapSummaries({});
         }
       })
       .catch((error) => {
@@ -175,6 +170,27 @@ function App() {
       })
       .catch((error) => console.error("Error fetching lap summary:", error));
   }, [selectedDriver, selectedSession, drivers]);
+
+  function addComparisonDriver() {
+    if (driverToAdd === null) return;
+    if (comparisonDrivers.includes(driverToAdd)) return;
+    if (driverToAdd === selectedDriver) return;
+    if (comparisonDrivers.length >= 4) return;
+
+    setComparisonDrivers([...comparisonDrivers, driverToAdd]);
+  }
+
+  function removeComparisonDriver(driverNumber: number) {
+    setComparisonDrivers(
+      comparisonDrivers.filter((driver) => driver !== driverNumber)
+    );
+
+    setComparisonLapSummaries((current) => {
+      const updated = { ...current };
+      delete updated[driverNumber];
+      return updated;
+    });
+  }
 
   return (
     <div
@@ -235,21 +251,6 @@ function App() {
           </select>
         </div>
 
-        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-          <label htmlFor="comparison-driver-select">Compare With:</label>
-          <select
-            id="comparison-driver-select"
-            value={comparisonDriver ?? ""}
-            onChange={(event) => setComparisonDriver(Number(event.target.value))}
-            disabled={drivers.length === 0}
-          >
-            {drivers.map((driver) => (
-              <option key={driver.driver_number} value={driver.driver_number}>
-                {driver.full_name} ({driver.name_acronym})
-              </option>
-            ))}
-          </select>
-        </div>
       </div>
 
 
@@ -329,6 +330,61 @@ function App() {
         )}
       </div>
 
+      <h3>Comparing Drivers</h3>
+
+      <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap" }}>
+        {comparisonDrivers.map((driverNumber, index) => {
+          const driver = drivers.find((d) => d.driver_number === driverNumber);
+
+          return (
+            <div
+              key={driverNumber}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "0.5rem",
+                padding: "0.5rem 0.75rem",
+                backgroundColor: "#111827",
+                border: "1px solid #374151",
+                borderRadius: "8px",
+              }}
+            >
+              <div
+                style={{
+                  width: "12px",
+                  height: "12px",
+                  backgroundColor: comparisonColors[index],
+                  borderRadius: "3px",
+                }}
+              />
+              <span>{driver?.full_name}</span>
+              <button onClick={() => removeComparisonDriver(driverNumber)}>×</button>
+            </div>
+          );
+        })}
+      </div>
+
+      <div style={{ marginTop: "1rem", display: "flex", gap: "0.5rem" }}>
+        <select
+          value={driverToAdd ?? ""}
+          onChange={(event) => setDriverToAdd(Number(event.target.value))}
+        >
+          {drivers
+            .filter(
+              (driver) =>
+                driver.driver_number !== selectedDriver &&
+                !comparisonDrivers.includes(driver.driver_number)
+            )
+            .map((driver) => (
+              <option key={driver.driver_number} value={driver.driver_number}>
+                {driver.full_name} ({driver.name_acronym})
+              </option>
+            ))}
+        </select>
+
+        <button onClick={addComparisonDriver}>Add Driver</button>
+      </div>
+
       <div style={{ ...cardStyle, marginTop: "2rem" }}>
         <h2>Lap Time Trend</h2>
 
@@ -359,23 +415,26 @@ function App() {
             </span>
           </div>
 
-          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-            <div
-              style={{
-                width: "14px",
-                height: "14px",
-                backgroundColor: "#f97316",
-                borderRadius: "3px",
-              }}
-            />
-            <span>
-              {
-                drivers.find(
-                  (driver) => driver.driver_number === comparisonDriver
-                )?.name_acronym
-              }
-            </span>
-          </div>
+          {comparisonDrivers.map((driverNumber, index) => {
+            const driver = drivers.find((d) => d.driver_number === driverNumber);
+
+            return (
+              <div
+                key={driverNumber}
+                style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}
+              >
+                <div
+                  style={{
+                    width: "14px",
+                    height: "14px",
+                    backgroundColor: comparisonColors[index],
+                    borderRadius: "3px",
+                  }}
+                />
+                <span>{driver?.name_acronym}</span>
+              </div>
+            );
+          })}
         </div>
         {lapSummary.length > 0 && (
           <ResponsiveContainer width="99%" height={300}>
@@ -403,16 +462,19 @@ function App() {
               <Tooltip />
               <Line
                 type="monotone"
-                dataKey="lap_duration"
+                dataKey="selected_lap_duration"
                 stroke="#38bdf8"
                 dot={false}
               />
-              <Line
-                type="monotone"
-                dataKey="comparison_lap_duration"
-                stroke="#f97316"
-                dot={false}
-              />
+              {comparisonDrivers.map((driverNumber, index) => (
+                <Line
+                  key={driverNumber}
+                  type="monotone"
+                  dataKey={`driver_${driverNumber}`}
+                  stroke={comparisonColors[index]}
+                  dot={false}
+                />
+              ))}
             </LineChart>
           </ResponsiveContainer>
         )}
@@ -515,60 +577,6 @@ function App() {
                 type="monotone"
                 dataKey="sector_3"
                 stroke="#22c55e"
-                dot={false}
-              />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
-      </div>
-
-      <div style={{ ...cardStyle, marginTop: "2rem" }}>
-        <h2>Lap Delta</h2>
-
-        <p style={{ color: "#9ca3af", marginTop: "-0.5rem" }}>
-          Difference between selected driver and comparison driver by lap.
-          Negative values mean the selected driver was faster.
-        </p>
-
-        <div
-          style={{
-            width: "100%",
-            minWidth: "300px",
-            height: "300px",
-          }}
-        >
-          <ResponsiveContainer width="99%" height={300}>
-            <LineChart
-              data={deltaChartData}
-              margin={{ top: 20, right: 30, left: 60, bottom: 35 }}
-            >
-              <CartesianGrid strokeDasharray="3 3" />
-
-              <XAxis dataKey="lap_number">
-                <Label
-                  value="Lap Number"
-                  position="bottom"
-                  offset={15}
-                  fill="white"
-                />
-              </XAxis>
-
-              <YAxis domain={["dataMin - 0.5", "dataMax + 0.5"]}>
-                <Label
-                  value="Delta (seconds)"
-                  angle={-90}
-                  position="center"
-                  dx={-70}
-                  fill="white"
-                />
-              </YAxis>
-
-              <Tooltip />
-
-              <Line
-                type="monotone"
-                dataKey="lap_delta"
-                stroke="#a78bfa"
                 dot={false}
               />
             </LineChart>
