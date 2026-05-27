@@ -76,6 +76,23 @@ function App() {
     };
   });
 
+  const deltaChartData = lapSummary
+    .map((lap) => {
+      const comparisonLap = comparisonLapSummary.find(
+        (otherLap) => otherLap.lap_number === lap.lap_number
+      );
+
+      if (!comparisonLap || lap.lap_duration === null || comparisonLap.lap_duration === null) {
+        return null;
+      }
+
+      return {
+        lap_number: lap.lap_number,
+        lap_delta: Number((lap.lap_duration - comparisonLap.lap_duration).toFixed(3)),
+      };
+    })
+    .filter((lap) => lap !== null);
+
   useEffect(() => {
     if (comparisonDriver === null) return;
 
@@ -498,6 +515,60 @@ function App() {
                 type="monotone"
                 dataKey="sector_3"
                 stroke="#22c55e"
+                dot={false}
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+
+      <div style={{ ...cardStyle, marginTop: "2rem" }}>
+        <h2>Lap Delta</h2>
+
+        <p style={{ color: "#9ca3af", marginTop: "-0.5rem" }}>
+          Difference between selected driver and comparison driver by lap.
+          Negative values mean the selected driver was faster.
+        </p>
+
+        <div
+          style={{
+            width: "100%",
+            minWidth: "300px",
+            height: "300px",
+          }}
+        >
+          <ResponsiveContainer width="99%" height={300}>
+            <LineChart
+              data={deltaChartData}
+              margin={{ top: 20, right: 30, left: 60, bottom: 35 }}
+            >
+              <CartesianGrid strokeDasharray="3 3" />
+
+              <XAxis dataKey="lap_number">
+                <Label
+                  value="Lap Number"
+                  position="bottom"
+                  offset={15}
+                  fill="white"
+                />
+              </XAxis>
+
+              <YAxis domain={["dataMin - 0.5", "dataMax + 0.5"]}>
+                <Label
+                  value="Delta (seconds)"
+                  angle={-90}
+                  position="center"
+                  dx={-70}
+                  fill="white"
+                />
+              </YAxis>
+
+              <Tooltip />
+
+              <Line
+                type="monotone"
+                dataKey="lap_delta"
+                stroke="#a78bfa"
                 dot={false}
               />
             </LineChart>
