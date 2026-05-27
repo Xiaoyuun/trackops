@@ -31,6 +31,11 @@ type DriverOption = {
   value: number;
 };
 
+type SessionOption = {
+  label: string;
+  value: number;
+};
+
 function App() {
   const drivers: DriverOption[] = [
     { label: "Oscar Piastri", value: 81 },
@@ -39,28 +44,36 @@ function App() {
     { label: "Charles Leclerc", value: 16 },
   ];
 
+  const sessions: SessionOption[] = [
+    { label: "2024 Abu Dhabi GP - Race", value: 9488 },
+    { label: "2024 Monza GP - Race", value: 9636 },
+    { label: "2024 Monaco GP - Race", value: 9533 },
+    { label: "2026 Canadian GP - Race", value: 11291 }
+  ];
+
   const [lapAnalysis, setLapAnalysis] = useState<LapAnalysis | null>(null);
   const [strategyAlerts, setStrategyAlerts] = useState<any>(null);
   const [lapSummary, setLapSummary] = useState<LapSummary[]>([]);
   const [selectedDriver, setSelectedDriver] = useState<number>(81);
+  const [selectedSession, setSelectedSession] = useState<number>(11291);
 
   useEffect(() => {
-    fetch(`http://127.0.0.1:8000/lap-analysis?session_key=11291&driver_number=${selectedDriver}`)
+    fetch(`http://127.0.0.1:8000/lap-analysis?session_key=${selectedSession}&driver_number=${selectedDriver}`)
       .then((response) => response.json())
       .then((data) => setLapAnalysis(data))
       .catch((error) => console.error("Error fetching lap analysis:", error));
-    fetch(`http://127.0.0.1:8000/strategy-alerts?session_key=11291&driver_number=${selectedDriver}`)
+    fetch(`http://127.0.0.1:8000/strategy-alerts?session_key=${selectedSession}&driver_number=${selectedDriver}`)
       .then((response) => response.json())
       .then((data) => setStrategyAlerts(data))
       .catch((error) => console.error("Error fetching strategy alerts:", error));
-    fetch(`http://127.0.0.1:8000/lap-summary?session_key=11291&driver_number=${selectedDriver}`)
+    fetch(`http://127.0.0.1:8000/lap-summary?session_key=${selectedSession}&driver_number=${selectedDriver}`)
       .then((response) => response.json())
       .then((data) => {
         const cleanData = data.filter((lap: LapSummary) => lap.lap_duration !== null);
         setLapSummary(cleanData);
       })
       .catch((error) => console.error("Error fetching lap summary:", error));
-  }, [selectedDriver]);
+  }, [selectedDriver, selectedSession]);
 
   return (
     <div
@@ -76,6 +89,22 @@ function App() {
       <p>Real-Time Motorsport Operations Dashboard</p>
 
       <div style={{ marginTop: "1.5rem" }}>
+        <label htmlFor="session-select">Session: </label>
+
+        <select
+          id="session-select"
+          value={selectedSession}
+          onChange={(event) => setSelectedSession(Number(event.target.value))}
+        >
+          {sessions.map((session) => (
+            <option key={session.value} value={session.value}>
+              {session.label}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      <div style={{ marginTop: "1.5rem" }}>
         <label htmlFor="driver-select">Driver: </label>
 
         <select
@@ -89,22 +118,6 @@ function App() {
             </option>
           ))}
         </select>
-      </div>
-
-      <div
-        style={{
-          marginTop: "2rem",
-          padding: "1rem",
-          backgroundColor: "#1f2937",
-          borderRadius: "8px",
-        }}
-      >
-        <h2>Information</h2>
-        <>
-          <p>Driver Number: {selectedDriver}</p>
-          <p>Race: Melbourne</p>
-        </>
-
       </div>
 
       <div
