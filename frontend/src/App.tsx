@@ -25,28 +25,42 @@ type LapSummary = {
   is_pit_out_lap: boolean | null;
 };
 
+// allows for driver dropdown
+type DriverOption = {
+  label: string;
+  value: number;
+};
+
 function App() {
+  const drivers: DriverOption[] = [
+    { label: "Oscar Piastri", value: 81 },
+    { label: "Lando Norris", value: 1 },
+    { label: "Max Verstappen", value: 3 },
+    { label: "Charles Leclerc", value: 16 },
+  ];
+
   const [lapAnalysis, setLapAnalysis] = useState<LapAnalysis | null>(null);
   const [strategyAlerts, setStrategyAlerts] = useState<any>(null);
   const [lapSummary, setLapSummary] = useState<LapSummary[]>([]);
+  const [selectedDriver, setSelectedDriver] = useState<number>(81);
 
   useEffect(() => {
-    fetch("http://127.0.0.1:8000/lap-analysis?session_key=9488&driver_number=81")
+    fetch(`http://127.0.0.1:8000/lap-analysis?session_key=11291&driver_number=${selectedDriver}`)
       .then((response) => response.json())
       .then((data) => setLapAnalysis(data))
       .catch((error) => console.error("Error fetching lap analysis:", error));
-    fetch("http://127.0.0.1:8000/strategy-alerts?session_key=9488&driver_number=81")
+    fetch(`http://127.0.0.1:8000/strategy-alerts?session_key=11291&driver_number=${selectedDriver}`)
       .then((response) => response.json())
       .then((data) => setStrategyAlerts(data))
       .catch((error) => console.error("Error fetching strategy alerts:", error));
-    fetch("http://127.0.0.1:8000/lap-summary?session_key=9488&driver_number=81")
+    fetch(`http://127.0.0.1:8000/lap-summary?session_key=11291&driver_number=${selectedDriver}`)
       .then((response) => response.json())
       .then((data) => {
         const cleanData = data.filter((lap: LapSummary) => lap.lap_duration !== null);
         setLapSummary(cleanData);
       })
       .catch((error) => console.error("Error fetching lap summary:", error));
-  }, []);
+  }, [selectedDriver]);
 
   return (
     <div
@@ -61,6 +75,22 @@ function App() {
       <h1>TrackOps</h1>
       <p>Real-Time Motorsport Operations Dashboard</p>
 
+      <div style={{ marginTop: "1.5rem" }}>
+        <label htmlFor="driver-select">Driver: </label>
+
+        <select
+          id="driver-select"
+          value={selectedDriver}
+          onChange={(event) => setSelectedDriver(Number(event.target.value))}
+        >
+          {drivers.map((driver) => (
+            <option key={driver.value} value={driver.value}>
+              {driver.label}
+            </option>
+          ))}
+        </select>
+      </div>
+
       <div
         style={{
           marginTop: "2rem",
@@ -71,7 +101,7 @@ function App() {
       >
         <h2>Information</h2>
         <>
-          <p>Driver: 81</p>
+          <p>Driver Number: {selectedDriver}</p>
           <p>Race: Melbourne</p>
         </>
 
@@ -140,8 +170,8 @@ function App() {
       >
         <h2>Lap Time Trend</h2>
 
-        <div style={{ width: "100%", height: "300px" }}>
-          <ResponsiveContainer>
+        <div style={{ width: "100%", height: "300px", minWidth: 0 }}>
+          <ResponsiveContainer width="100%" height="100%">
             <LineChart data={lapSummary}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="lap_number" />
