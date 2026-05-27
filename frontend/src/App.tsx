@@ -8,6 +8,7 @@ import {
   Tooltip,
   ResponsiveContainer,
   CartesianGrid,
+  Label,
 } from "recharts";
 
 type LapAnalysis = {
@@ -319,6 +320,7 @@ function App() {
             display: "flex",
             gap: "1.5rem",
             marginBottom: "1rem",
+            marginLeft: "1rem",
             alignItems: "center",
           }}
         >
@@ -328,7 +330,7 @@ function App() {
                 width: "14px",
                 height: "14px",
                 backgroundColor: "#38bdf8",
-                borderRadius: "3px",
+                borderRadius: "3px"
               }}
             />
             <span>
@@ -360,10 +362,27 @@ function App() {
         </div>
         {lapSummary.length > 0 && (
           <ResponsiveContainer width="99%" height={300}>
-            <LineChart data={chartData}>
+            <LineChart data={chartData}
+              margin={{ top: 20, right: 30, left: 60, bottom: 35 }}
+            >
               <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="lap_number" />
-              <YAxis domain={["dataMin - 1", "dataMax + 1"]} />
+              <XAxis dataKey="lap_number">
+                <Label
+                  value="Lap Number"
+                  position="bottom"
+                  offset={15}
+                  fill="white"
+                />
+              </XAxis>
+              <YAxis domain={["dataMin - 1", "dataMax + 1"]}>
+                <Label
+                  value="Time (seconds)"
+                  angle={-90}
+                  position="center"
+                  dx={-70}
+                  fill="white"
+                />
+              </YAxis>
               <Tooltip />
               <Line
                 type="monotone"
@@ -380,6 +399,110 @@ function App() {
             </LineChart>
           </ResponsiveContainer>
         )}
+      </div>
+
+      <div style={{ ...cardStyle, marginTop: "2rem" }}>
+        <h2>Sector Time Trend</h2>
+
+        <div
+          style={{
+            display: "flex",
+            gap: "1.5rem",
+            marginTop: "1rem",
+            marginBottom: "1rem",
+            marginLeft: "1rem",
+            alignItems: "center",
+            flexWrap: "wrap",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+            <div
+              style={{
+                width: "14px",
+                height: "14px",
+                backgroundColor: "#38bdf8",
+                borderRadius: "3px",
+              }}
+            />
+            <span>Sector 1</span>
+          </div>
+
+          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+            <div
+              style={{
+                width: "14px",
+                height: "14px",
+                backgroundColor: "#f97316",
+                borderRadius: "3px",
+              }}
+            />
+            <span>Sector 2</span>
+          </div>
+
+          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+            <div
+              style={{
+                width: "14px",
+                height: "14px",
+                backgroundColor: "#22c55e",
+                borderRadius: "3px",
+              }}
+            />
+            <span>Sector 3</span>
+          </div>
+        </div>
+
+        <div
+          style={{
+            width: "100%",
+            minWidth: "300px",
+            height: "300px",
+          }}
+        >
+          <ResponsiveContainer width="99%" height={300}>
+            <LineChart data={lapSummary}
+              margin={{ top: 20, right: 30, left: 60, bottom: 35 }}
+            >
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="lap_number">
+                <Label
+                  value="Lap Number"
+                  position="bottom"
+                  offset={15}
+                  fill="white"
+                />
+              </XAxis>
+              <YAxis domain={["dataMin - 1", "dataMax + 1"]}>
+                <Label
+                  value="Time (seconds)"
+                  angle={-90}
+                  position="center"
+                  dx={-70}
+                  fill="white"
+                />
+              </YAxis>
+              <Tooltip />
+              <Line
+                type="monotone"
+                dataKey="sector_1"
+                stroke="#38bdf8"
+                dot={false}
+              />
+              <Line
+                type="monotone"
+                dataKey="sector_2"
+                stroke="#f97316"
+                dot={false}
+              />
+              <Line
+                type="monotone"
+                dataKey="sector_3"
+                stroke="#22c55e"
+                dot={false}
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
       </div>
 
     </div>
