@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 from app.services.openf1_client import fetch_sessions, fetch_drivers, fetch_laps
 from app.services.analysis import generate_lap_summary, analyze_laps, generate_strategy_alerts
@@ -6,6 +7,19 @@ from app.services.analysis import generate_lap_summary, analyze_laps, generate_s
 # app is the actual backend server, everything is attached to app
 # creates FastAPI application object
 app = FastAPI(title="TrackOps API")
+
+# CORS security system:
+# frontend and backend are on different origins
+# treated as different websites for security reasons
+# this code tells fastAPI to allow reqests coming from react frontend on localhost
+# on react frontend, can now see analysis data from backend
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # first endpoint
 # @app.get("/") is a decorator
