@@ -1,4 +1,5 @@
 import requests
+from functools import lru_cache
 
 OPENF1_BASE = "https://api.openf1.org/v1"
 
@@ -28,7 +29,7 @@ def fetch_drivers(session_key: int):
     response.raise_for_status()
     return response.json()
 
-
+@lru_cache(maxsize=128)
 def fetch_laps(session_key: int, driver_number: int):
     response = requests.get(
         f"{OPENF1_BASE}/laps",
