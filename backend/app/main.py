@@ -67,3 +67,44 @@ def get_laps(session_key: int = 9488, driver_number: int = 81):
     )
     response.raise_for_status()
     return response.json()
+
+# creates lap-summary endpoint/route
+# summarizes data instead of passing it through unchanges (e.g. sessions, lap, drivers)
+@app.get("/lap-summary")
+# defines endpoint function get_lap_summary, takes two query parameters
+def get_lap_summary(session_key: int = 9488, driver_number: int = 81):
+    # sending request to openf1
+    # response starts an HTTP GET request
+    response = requests.get(
+        f"{OPENF1_BASE}/laps",
+        params={
+            "session_key": session_key,
+            "driver_number": driver_number
+        }
+    )
+
+    # error checking
+    # this checks whether the API request failed (404,500,etc) then python raises an exception
+    response.raise_for_status()
+
+    # convert JSON to python
+    # laps = actual python data structure
+    laps = response.json()
+    # laps is now a python list of dictionaries
+    # each lap is a dictionary (python version of a json object)
+
+    summary = []
+
+    for lap in laps:
+        summary.append({
+            "lap_number": lap.get("lap_number"),
+            "lap_duration": lap.get("lap_duration"),
+            "sector_1": lap.get("duration_sector_1"),
+            "sector_2": lap.get("duration_sector_2"),
+            "sector_3": lap.get("duration_sector_3"),
+            "is_pit_out_lap": lap.get("is_pit_out_lap")
+        })
+
+    # fastAPI converst python list into json automatically
+    # so browser receives structured JSON
+    return summary
