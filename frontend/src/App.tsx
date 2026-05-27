@@ -61,6 +61,43 @@ function App() {
   const [lapSummary, setLapSummary] = useState<LapSummary[]>([]);
   const [selectedDriver, setSelectedDriver] = useState<number | null>(81);
   const [selectedSession, setSelectedSession] = useState<number>(11291);
+  const [comparisonDriver, setComparisonDriver] = useState<number | null>(null);
+  const [comparisonLapSummary, setComparisonLapSummary] = useState<LapSummary[]>([]);
+
+  const chartData = lapSummary.map((lap) => {
+    const comparisonLap = comparisonLapSummary.find(
+      (otherLap) => otherLap.lap_number === lap.lap_number
+    );
+
+    return {
+      ...lap,
+      comparison_lap_duration: comparisonLap?.lap_duration ?? null,
+    };
+  });
+
+  useEffect(() => {
+    if (comparisonDriver === null) return;
+
+    const driverExistsInSession = drivers.some(
+      (driver) => driver.driver_number === comparisonDriver
+    );
+
+    if (!driverExistsInSession) return;
+
+    fetch(
+      `http://127.0.0.1:8000/lap-summary?session_key=${selectedSession}&driver_number=${comparisonDriver}`
+    )
+      .then((response) => response.json())
+      .then((data) => {
+        const cleanData = data.filter(
+          (lap: LapSummary) => lap.lap_duration !== null
+        );
+        setComparisonLapSummary(cleanData);
+      })
+      .catch((error) =>
+        console.error("Error fetching comparison lap summary:", error)
+      );
+  }, [comparisonDriver, selectedSession, drivers]);
 
   // when session changes fetch drivers
   useEffect(() => {
@@ -75,6 +112,11 @@ function App() {
           setSelectedDriver(data[0].driver_number);
         } else {
           setSelectedDriver(null);
+        }
+        if (data.length > 1) {
+          setComparisonDriver(data[1].driver_number);
+        } else {
+          setComparisonDriver(null);
         }
       })
       .catch((error) => {
@@ -133,39 +175,66 @@ function App() {
         style={{
           ...cardStyle,
           display: "flex",
+          flexWrap: "wrap",
           gap: "1rem",
           alignItems: "center",
+          justifyContent: "center",
           marginTop: "1.5rem",
         }}
       >
-        {<select
-          id="session-select"
-          value={selectedSession}
-          onChange={(event) => setSelectedSession(Number(event.target.value))}
-        >
-          {sessions.map((session) => (
-            <option key={session.value} value={session.value}>
-              {session.label}
-            </option>
-          ))}
-        </select>}
-        {<select
-          id="driver-select"
-          value={selectedDriver ?? ""}
-          onChange={(event) => setSelectedDriver(Number(event.target.value))}
-          disabled={drivers.length === 0}
-        >
-          {drivers.length === 0 ? (
-            <option value="">Loading drivers...</option>
-          ) : (
-            drivers.map((driver) => (
+        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+          <label htmlFor="session-select">Session:</label>
+          <select
+            id="session-select"
+            value={selectedSession}
+            onChange={(event) => setSelectedSession(Number(event.target.value))}
+          >
+            {sessions.map((session) => (
+              <option key={session.value} value={session.value}>
+                {session.label}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+          <label htmlFor="driver-select">Driver:</label>
+          <select
+            id="driver-select"
+            value={selectedDriver ?? ""}
+            onChange={(event) => setSelectedDriver(Number(event.target.value))}
+            disabled={drivers.length === 0}
+          >
+            {drivers.length === 0 ? (
+              <option value="">Loading drivers...</option>
+            ) : (
+              drivers.map((driver) => (
+                <option key={driver.driver_number} value={driver.driver_number}>
+                  {driver.full_name} ({driver.name_acronym})
+                </option>
+              ))
+            )}
+          </select>
+        </div>
+
+        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+          <label htmlFor="comparison-driver-select">Compare With:</label>
+          <select
+            id="comparison-driver-select"
+            value={comparisonDriver ?? ""}
+            onChange={(event) => setComparisonDriver(Number(event.target.value))}
+            disabled={drivers.length === 0}
+          >
+            {drivers.map((driver) => (
               <option key={driver.driver_number} value={driver.driver_number}>
                 {driver.full_name} ({driver.name_acronym})
               </option>
-            ))
-          )}
-        </select>}
+            ))}
+          </select>
+        </div>
       </div>
+
+
 
       <div
         style={{
@@ -175,21 +244,45 @@ function App() {
           marginTop: "2rem",
         }}
       >
-        <div style={cardStyle}>
-          <h3>Total Laps</h3>
-          <p style={{ fontSize: "2rem" }}>{lapAnalysis?.total_laps ?? "—"}</p>
+        <div style={{
+          ...cardStyle,
+          minHeight: "120px",
+          display: "flex",
+          flexDirection: "column",
+          justifyContent: "center",
+          alignItems: "center",
+          textAlign: "center",
+        }}>
+          <h3 style={{ margin: 0, marginBottom: "1rem" }}>Total Laps</h3>
+          <p style={{ fontSize: "2rem", margin: 0 }}>{lapAnalysis?.total_laps ?? "—"}</p>
         </div>
 
-        <div style={cardStyle}>
-          <h3>Fastest Lap</h3>
-          <p style={{ fontSize: "2rem" }}>
+        <div style={{
+          ...cardStyle,
+          minHeight: "120px",
+          display: "flex",
+          flexDirection: "column",
+          justifyContent: "center",
+          alignItems: "center",
+          textAlign: "center",
+        }}>
+          <h3 style={{ margin: 0, marginBottom: "1rem" }}>Fastest Lap</h3>
+          <p style={{ fontSize: "2rem", margin: 0 }}>
             {lapAnalysis ? `${lapAnalysis.fastest_lap}s` : "—"}
           </p>
         </div>
 
-        <div style={cardStyle}>
-          <h3>Average Lap</h3>
-          <p style={{ fontSize: "2rem" }}>
+        <div style={{
+          ...cardStyle,
+          minHeight: "120px",
+          display: "flex",
+          flexDirection: "column",
+          justifyContent: "center",
+          alignItems: "center",
+          textAlign: "center",
+        }}>
+          <h3 style={{ margin: 0, marginBottom: "1rem" }}>Average Lap</h3>
+          <p style={{ fontSize: "2rem", margin: 0 }}>
             {lapAnalysis ? `${lapAnalysis.average_lap}s` : "—"}
           </p>
         </div>
@@ -220,9 +313,54 @@ function App() {
 
       <div style={{ ...cardStyle, marginTop: "2rem" }}>
         <h2>Lap Time Trend</h2>
+
+        <div
+          style={{
+            display: "flex",
+            gap: "1.5rem",
+            marginBottom: "1rem",
+            alignItems: "center",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+            <div
+              style={{
+                width: "14px",
+                height: "14px",
+                backgroundColor: "#38bdf8",
+                borderRadius: "3px",
+              }}
+            />
+            <span>
+              {
+                drivers.find(
+                  (driver) => driver.driver_number === selectedDriver
+                )?.name_acronym
+              }
+            </span>
+          </div>
+
+          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+            <div
+              style={{
+                width: "14px",
+                height: "14px",
+                backgroundColor: "#f97316",
+                borderRadius: "3px",
+              }}
+            />
+            <span>
+              {
+                drivers.find(
+                  (driver) => driver.driver_number === comparisonDriver
+                )?.name_acronym
+              }
+            </span>
+          </div>
+        </div>
         {lapSummary.length > 0 && (
           <ResponsiveContainer width="99%" height={300}>
-            <LineChart data={lapSummary}>
+            <LineChart data={chartData}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="lap_number" />
               <YAxis domain={["dataMin - 1", "dataMax + 1"]} />
@@ -231,6 +369,12 @@ function App() {
                 type="monotone"
                 dataKey="lap_duration"
                 stroke="#38bdf8"
+                dot={false}
+              />
+              <Line
+                type="monotone"
+                dataKey="comparison_lap_duration"
+                stroke="#f97316"
                 dot={false}
               />
             </LineChart>
