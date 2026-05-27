@@ -13,3 +13,24 @@ def generate_lap_summary(laps: list):
     # fastAPI converst python list into json automatically
     # so browser receives structured JSON
     return summary
+
+def analyze_laps(laps: list):
+    valid_laps = []
+
+    for lap in laps:
+        lap_time = lap.get("lap_duration")
+
+        if lap_time is not None:
+            valid_laps.append(lap_time)
+
+    if not valid_laps:
+        return {"error": "No valid laps found"}
+
+    fastest_lap = min(valid_laps)
+    average_lap = sum(valid_laps) / len(valid_laps)
+
+    return {
+        "total_laps": len(valid_laps),
+        "fastest_lap": round(fastest_lap, 3),
+        "average_lap": round(average_lap, 3)
+    }

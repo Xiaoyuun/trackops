@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 
 from app.services.openf1_client import fetch_sessions, fetch_drivers, fetch_laps
-from app.services.analysis import generate_lap_summary
+from app.services.analysis import generate_lap_summary, analyze_laps
 
 # app is the actual backend server, everything is attached to app
 # creates FastAPI application object
@@ -47,3 +47,9 @@ def get_laps(session_key: int = 9488, driver_number: int = 81):
 def get_lap_summary(session_key: int = 9488, driver_number: int = 81):
     laps = fetch_laps(session_key, driver_number)
     return generate_lap_summary(laps)
+
+# lap-analysis endpoint/route
+@app.get("/lap-analysis")
+def get_lap_analysis(session_key: int = 9488, driver_number: int = 81):
+    laps = fetch_laps(session_key, driver_number)
+    return analyze_laps(laps)
